@@ -2,6 +2,7 @@ package com.example.taskmanagerapp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Parcelable;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,10 +38,14 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TasksViewHolde
         holder.textViewDesc.setText(t.getDesc());
         holder.textViewFinishBy.setText(t.getFinishBy());
 
-        if (t.isFinished())
+        if (t.isFinished()){
             holder.textViewStatus.setText("Completed");
-        else
+            holder.textViewStatus.setBackgroundResource(R.color.colorDone);
+        }
+        else {
             holder.textViewStatus.setText("Not Completed");
+            holder.textViewStatus.setBackgroundResource(R.color.colorUndone);
+        }
     }
 
     @Override

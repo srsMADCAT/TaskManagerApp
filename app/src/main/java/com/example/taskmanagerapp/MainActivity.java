@@ -149,11 +149,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getWeather() {
-//        final Double latitude = getLocation()[0];
-//        final Double longitude = getLocation()[1];
+        final Double latitude = getLocation()[1];
+        final Double longitude = getLocation()[0];
 
-        Double latitude = 48.9215;
-        Double longitude = 24.7097;
+//        Double latitude = 48.9215;
+//        Double longitude = 24.7097;
         String units = "metric";
         String key = WeatherAPI.KEY;
 
@@ -171,6 +171,7 @@ public class MainActivity extends AppCompatActivity {
 
                 if (response.isSuccessful()) {
                     SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
+                    Log.d(TAG, data.getCity());
                     wcCity.setText(data.getCity());
                     wcDesc.setText(data.getDescription());
                     wcTemp.setText(data.getTempWithDegree());
