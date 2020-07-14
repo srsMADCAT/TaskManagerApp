@@ -96,7 +96,7 @@ public class AddTaskFrag extends Fragment {
             @Override
             protected void onPostExecute(Void aVoid) {
                 super.onPostExecute(aVoid);
-//                startActivity(new Intent(getActivity().getApplicationContext(), MainActivity.class));
+
                 AddTaskFrag fragment = (AddTaskFrag) getFragmentManager().findFragmentById(R.id.fragmentContainer);
                 if (fragment != null){
                     FragmentTransaction fragmentTransaction = getFragmentManager().beginTransaction();

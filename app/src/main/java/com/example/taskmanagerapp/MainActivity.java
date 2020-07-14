@@ -1,31 +1,26 @@
 package com.example.taskmanagerapp;
 
-import android.Manifest;
-import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.taskmanagerapp.db.DatabaseClient;
 import com.example.taskmanagerapp.db.Task;
 import com.example.taskmanagerapp.weatherForecast.GpsTracker;
-import com.example.taskmanagerapp.weatherForecast.WeatherAPI;
-import com.example.taskmanagerapp.weatherForecast.WeatherService;
+import com.example.taskmanagerapp.weatherForecast.OpenWeatherInterface;
+import com.example.taskmanagerapp.weatherForecast.POJO.WheatherData;
+import com.example.taskmanagerapp.weatherForecast.RetrofitAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.squareup.picasso.Picasso;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.List;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,10 +31,11 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
+import retrofit2.Retrofit;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,8 +45,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageView wcIcon;
     private CardView cardView;
     private TextView wcTemp, wcTemFL, wcCity, wcDesc, wcWind, currentDate;
-    private WeatherAPI.ApiInterface api;
     private GpsTracker gpsTracker;
+    Retrofit retrofit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,9 +74,6 @@ public class MainActivity extends AppCompatActivity {
         wcIcon = (ImageView) findViewById(R.id.whether_icon);
         currentDate = (TextView) findViewById(R.id.currentDate);
 
-
-        api = WeatherAPI.getClient().create(WeatherAPI.ApiInterface.class);
-
         addTask.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -91,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        retrofit = new RetrofitAdapter().getClient();
 
         getTasks();
         getWeather();
@@ -149,47 +144,52 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getWeather() {
-        final Double latitude = getLocation()[1];
-        final Double longitude = getLocation()[0];
+        final String latitude = Double.toString(getLocation()[0]);
+        final String longitude = Double.toString(getLocation()[1]);
 
-//        Double latitude = 48.9215;
-//        Double longitude = 24.7097;
         String units = "metric";
-        String key = WeatherAPI.KEY;
+        String key = RetrofitAdapter.KEY;
 
         Log.d(TAG, "OK");
 
-        // get weather for today
-        Call<WeatherService> callToday = api.getToday(longitude, latitude, units, key);
-        callToday.enqueue(new Callback<WeatherService>() {
-            @Override
-            public void onResponse(Call<WeatherService> call, Response<WeatherService> response) {
-                Log.e(TAG, "onResponse");
-                WeatherService data = response.body();
-                //Log.d(TAG,response.toString());
-                //Log.d(TAG, String.valueOf(latitude));
+        OpenWeatherInterface openWeatherInterface = retrofit.create(OpenWeatherInterface.class);
 
-                if (response.isSuccessful()) {
-                    SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
-                    Log.d(TAG, data.getCity());
-                    wcCity.setText(data.getCity());
-                    wcDesc.setText(data.getDescription());
-                    wcTemp.setText(data.getTempWithDegree());
-                    wcTemFL.setText("Feels like " + data.getTempFeelsLike() + "\u00b0");
-                    wcWind.setText("Wind speed: " + data.getWindSpeed());
-                    currentDate.setText((String.valueOf(sdf.format(data.getDate().getTime()))));
-                    Picasso.with(MainActivity.this).load(data.getIconUrl()).into(wcIcon);
-                }
-            }
+        Observable<WheatherData> weatherObservable = openWeatherInterface.getWeatherData(latitude, longitude, units, key);
 
-            @Override
-            public void onFailure(Call<WeatherService> call, Throwable t) {
-                Log.e(TAG, "onFailure");
-                Log.e(TAG, t.toString());
-            }
-        });
+        weatherObservable.subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::handleResults, this::handleErorrs);
+
 
     }
+
+
+    private void handleResults(WheatherData wheatherData) {
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
+        NumberFormat numberFormat = DecimalFormat.getInstance();
+        numberFormat.setMaximumFractionDigits(0);
+
+        String url = "http://openweathermap.org/img/wn/" + wheatherData.getWeather().get(0).getIcon() + "@4x.png";
+
+        wcCity.setText(wheatherData.getName());
+        wcDesc.setText(wheatherData.getWeather().get(0).getDescription().toUpperCase());
+        wcTemp.setText(numberFormat.format(wheatherData.getMain().getTemp()) + "\u00b0");
+        wcTemFL.setText("Feels like " + numberFormat.format(wheatherData.getMain().getFeels_like()) + "\u00b0");
+        wcWind.setText("Wind speed: " + wheatherData.getWind().getSpeed().toString() + " mps");
+        currentDate.setText(String.valueOf(sdf.format(wheatherData.getDate().getTime())));
+        Picasso.with(MainActivity.this).load(url).into(wcIcon);
+
+        Log.d(TAG, url);
+        Log.d(TAG,  wheatherData.getWeather().get(0).getIcon());
+
+    }
+
+    private void handleErorrs(Throwable throwable) {
+        Toast.makeText(this, "ERROR IN FETCHING API RESPONSE. Try again",
+                Toast.LENGTH_LONG).show();
+        Log.e(TAG, throwable.toString());
+    }
+
 
     public double[] getLocation(){
         double latitude = 0, longitude = 0;
