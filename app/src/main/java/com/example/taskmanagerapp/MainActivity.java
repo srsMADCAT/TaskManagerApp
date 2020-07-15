@@ -1,5 +1,6 @@
 package com.example.taskmanagerapp;
 
+import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -32,6 +33,9 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import javax.inject.Inject;
+
+import dagger.Component;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
@@ -47,6 +51,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView wcTemp, wcTemFL, wcCity, wcDesc, wcWind, currentDate;
     private GpsTracker gpsTracker;
     Retrofit retrofit;
+
+    @Inject
+    RetrofitAdapter retrofitAdapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
         gt.execute();
     }
 
+    @SuppressLint("CheckResult")
     private void getWeather() {
         final String latitude = Double.toString(getLocation()[0]);
         final String longitude = Double.toString(getLocation()[1]);
@@ -164,8 +173,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    @SuppressLint("SetTextI18n")
     private void handleResults(WheatherData wheatherData) {
-        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a");
         NumberFormat numberFormat = DecimalFormat.getInstance();
         numberFormat.setMaximumFractionDigits(0);
 

@@ -3,6 +3,7 @@ package com.example.taskmanagerapp.weatherForecast;
 
 import com.example.taskmanagerapp.weatherForecast.POJO.WheatherData;
 
+import dagger.Component;
 import io.reactivex.Observable;
 import retrofit2.Callback;
 import retrofit2.http.GET;
